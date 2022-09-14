@@ -35,7 +35,7 @@ SRC_URI = "\
 "
 SRC_URI:append:x86-64 = " \
     ${@bb.utils.contains('DISTRO_FEATURES', 'msft', \
-                         'file://shim' + d.expand('EFI_ARCH') + '.efi.signed file://LICENSE' \
+                         'file://shim' + d.expand('${EFI_ARCH}') + '.efi.signed file://LICENSE' \
                          if uks_signing_model(d) == 'sample' else '', '', d)} \
 "
 SRCREV = "5202f80c32bdcab0469785e953bf9fa8dd4eaaa1"
@@ -73,7 +73,6 @@ EXTRA_OEMAKE:append:x86-64 = " OVERRIDE_SECURITY_POLICY=1"
 
 PARALLEL_MAKE = ""
 COMPATIBLE_HOST = '(i.86|x86_64).*-linux'
-
 
 MSFT = "${@bb.utils.contains('DISTRO_FEATURES', 'msft', '1', '0', d)}"
 
