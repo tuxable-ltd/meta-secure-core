@@ -1,3 +1,5 @@
+inherit deploy
+
 DEPENDS:append:class-target = " \
     ${@bb.utils.contains("DISTRO_FEATURES", "efi-secure-boot", "sbsigntool-native", "", d)} \
     ${@bb.utils.contains("DISTRO_FEATURES", "efi-secure-boot", "libsign-native", "", d)} \
@@ -409,7 +411,7 @@ deploy_modsign_keys() {
 }
 
 def deploy_keys(name, d):
-    d.setVar('DEPLOY_KEYS_DIR', d.getVar('DEPLOY_DIR_IMAGE', True) + '/' + \
+    d.setVar('DEPLOY_KEYS_DIR', d.getVar('DEPLOYDIR', True) + '/' + \
              d.getVar('SIGNING_MODEL', True) + '-keys')
     bb.build.exec_func('deploy_' + name.lower() + '_keys', d)
 
@@ -449,7 +451,7 @@ def set_keys_dir(name, d):
         return
 
     if d.getVar(name + '_KEYS_DIR', True) == d.getVar('SAMPLE_' + name + '_KEYS_DIR', True):
-        d.setVar(name + '_KEYS_DIR', d.getVar('DEPLOY_DIR_IMAGE', True) + '/user-keys/' + name.lower() + '_keys')
+        d.setVar(name + '_KEYS_DIR', d.getVar('DEPLOYDIR', True) + '/user-keys/' + name.lower() + '_keys')
 
 python check_deploy_keys() {
     for _ in ('UEFI_SB', 'MOK_SB', 'IMA', 'SYSTEM_TRUSTED', 'SECONDARY_TRUSTED', 'MODSIGN', 'RPM'):
