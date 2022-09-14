@@ -38,9 +38,6 @@ SRC_URI:append:class-target = " \
 # functions efi_call_foo and efi_shim_exit are not implemented for arm64 yet
 COMPATIBLE_HOST:aarch64 = 'null'
 
-GRUB_PREFIX_DIR ?= "/EFI/BOOT"
-EFI_BOOT_PATH ?= "/boot/efi/EFI/BOOT"
-
 GRUB_SECURE_BOOT_MODULES += "${@'efivar password_pbkdf2 ' if d.getVar('UEFI_SB', True) == '1' else ''}"
 
 GRUB_SIGNING_MODULES += "${@'pgp gcry_rsa gcry_sha256 gcry_sha512 --pubkey %s ' % d.getVar('GRUB_PUB_KEY', True) \
@@ -94,8 +91,8 @@ EOF
     > ${WORKDIR}/cfg
 	fi
 	cat<<EOF>>${WORKDIR}/cfg
-search.file ${GRUB_PREFIX_DIR}/grub.cfg root
-set prefix=(\$root)${GRUB_PREFIX_DIR}
+search.file ${EFIDIR}/grub.cfg root
+set prefix=(\$root)${EFIDIR}
 EOF
 }
 
@@ -125,29 +122,29 @@ do_install:append:class-target() {
     }
 
     # Install the stacked grub configs.
-    install -d "${D}${EFI_BOOT_PATH}"
-    install -m 0600 "${WORKDIR}/grub-efi.cfg" "${D}${EFI_BOOT_PATH}/grub.cfg"
-    install -m 0600 "$menu" "${D}${EFI_BOOT_PATH}"
+    install -d "${D}${EFI_FILES_PATH}"
+    install -m 0600 "${WORKDIR}/grub-efi.cfg" "${D}${EFI_FILES_PATH}/grub.cfg"
+    install -m 0600 "$menu" "${D}${EFI_FILES_PATH}"
     [ x"${UEFI_SB}" = x"1" ] && {
-        install -m 0600 "${WORKDIR}/efi-secure-boot.inc" "${D}${EFI_BOOT_PATH}"
-        install -m 0600 "${WORKDIR}/password.inc" "${D}${EFI_BOOT_PATH}"
+        install -m 0600 "${WORKDIR}/efi-secure-boot.inc" "${D}${EFI_FILES_PATH}"
+        install -m 0600 "${WORKDIR}/password.inc" "${D}${EFI_FILES_PATH}"
     }
 
     # Create the initial environment block with empty item.
-    grub-editenv "${D}${EFI_BOOT_PATH}/grubenv" create
+    grub-editenv "${D}${EFI_FILES_PATH}/grubenv" create
 
-    install -d "${D}${EFI_BOOT_PATH}/${GRUB_TARGET}-efi"
-    grub-mkimage -c ../cfg -p "${GRUB_PREFIX_DIR}" -d "./grub-core" \
+    install -d "${D}${EFI_FILES_PATH}/${GRUB_TARGET}-efi"
+    grub-mkimage -c ../cfg -p "${EFIDIR}" -d "./grub-core" \
         -O "${GRUB_TARGET}-efi" -o "${B}/${GRUB_IMAGE}" \
         ${GRUB_BUILDIN} ${GRUB_SECURE_BUILDIN}
 
-    install -m 0644 "${B}/${GRUB_IMAGE}" "${D}${EFI_BOOT_PATH}/${GRUB_IMAGE}"
+    install -m 0644 "${B}/${GRUB_IMAGE}" "${D}${EFI_FILES_PATH}/${GRUB_IMAGE}"
 
     # Install the modules to grub-efi's search path
-    make -C grub-core install DESTDIR="${D}${EFI_BOOT_PATH}" pkglibdir=""
+    make -C grub-core install DESTDIR="${D}${EFI_FILES_PATH}" pkglibdir=""
 
     # Remove .module
-    rm -f ${D}${EFI_BOOT_PATH}/${GRUB_TARGET}-efi/*.module
+    rm -f ${D}${EFI_FILES_PATH}/${GRUB_TARGET}-efi/*.module
 }
 
 python do_sign:prepend:class-target() {
@@ -158,7 +155,7 @@ python do_sign:prepend:class-target() {
 
 fakeroot python do_sign:class-target() {
     image_dir = d.getVar('D', True)
-    efi_boot_path = d.getVar('EFI_BOOT_PATH', True)
+    efi_boot_path = d.getVar('EFI_FILES_PATH', True)
     grub_image = d.getVar('GRUB_IMAGE', True)
     dir = image_dir + efi_boot_path + '/'
 
@@ -176,42 +173,42 @@ python do_sign() {
 addtask sign after do_install before do_deploy do_package
 
 fakeroot do_chownboot() {
-    chown root:root -R "${D}${EFI_BOOT_PATH}/grub.cfg${SB_FILE_EXT}"
-    chown root:root -R "${D}${EFI_BOOT_PATH}/boot-menu.inc${SB_FILE_EXT}"
+    chown root:root -R "${D}${EFI_FILES_PATH}/grub.cfg${SB_FILE_EXT}"
+    chown root:root -R "${D}${EFI_FILES_PATH}/boot-menu.inc${SB_FILE_EXT}"
     [ x"${UEFI_SB}" = x"1" ] && {
-        chown root:root -R "${D}${EFI_BOOT_PATH}/efi-secure-boot.inc${SB_FILE_EXT}"
-        chown root:root -R "${D}${EFI_BOOT_PATH}/password.inc${SB_FILE_EXT}"
+        chown root:root -R "${D}${EFI_FILES_PATH}/efi-secure-boot.inc${SB_FILE_EXT}"
+        chown root:root -R "${D}${EFI_FILES_PATH}/password.inc${SB_FILE_EXT}"
     }
 }
 addtask chownboot after do_deploy before do_package
 
 # Append the do_deploy() in oe-core.
 do_deploy:append:class-target() {
-    install -m 0644 "${D}${EFI_BOOT_PATH}/${GRUB_IMAGE}" "${DEPLOYDIR}"
+    install -m 0644 "${D}${EFI_FILES_PATH}/${GRUB_IMAGE}" "${DEPLOYDIR}"
 
     # Deploy the stacked grub configs.
-    install -m 0600 "${D}${EFI_BOOT_PATH}/grubenv" "${DEPLOYDIR}"
-    install -m 0600 "${D}${EFI_BOOT_PATH}/grub.cfg" "${DEPLOYDIR}"
-    install -m 0600 "${D}${EFI_BOOT_PATH}/boot-menu.inc" "${DEPLOYDIR}"
-    install -m 0600 "${D}${EFI_BOOT_PATH}/grub.cfg${SB_FILE_EXT}" "${DEPLOYDIR}"
-    install -m 0600 "${D}${EFI_BOOT_PATH}/boot-menu.inc${SB_FILE_EXT}" "${DEPLOYDIR}"
+    install -m 0600 "${D}${EFI_FILES_PATH}/grubenv" "${DEPLOYDIR}"
+    install -m 0600 "${D}${EFI_FILES_PATH}/grub.cfg" "${DEPLOYDIR}"
+    install -m 0600 "${D}${EFI_FILES_PATH}/boot-menu.inc" "${DEPLOYDIR}"
+    install -m 0600 "${D}${EFI_FILES_PATH}/grub.cfg${SB_FILE_EXT}" "${DEPLOYDIR}"
+    install -m 0600 "${D}${EFI_FILES_PATH}/boot-menu.inc${SB_FILE_EXT}" "${DEPLOYDIR}"
     [ x"${UEFI_SB}" = x"1" ] && {
-        install -m 0600 "${D}${EFI_BOOT_PATH}/efi-secure-boot.inc" "${DEPLOYDIR}"
-        install -m 0600 "${D}${EFI_BOOT_PATH}/password.inc" "${DEPLOYDIR}"
-        install -m 0600 "${D}${EFI_BOOT_PATH}/efi-secure-boot.inc${SB_FILE_EXT}" "${DEPLOYDIR}"
-        install -m 0600 "${D}${EFI_BOOT_PATH}/password.inc${SB_FILE_EXT}" "${DEPLOYDIR}"
+        install -m 0600 "${D}${EFI_FILES_PATH}/efi-secure-boot.inc" "${DEPLOYDIR}"
+        install -m 0600 "${D}${EFI_FILES_PATH}/password.inc" "${DEPLOYDIR}"
+        install -m 0600 "${D}${EFI_FILES_PATH}/efi-secure-boot.inc${SB_FILE_EXT}" "${DEPLOYDIR}"
+        install -m 0600 "${D}${EFI_FILES_PATH}/password.inc${SB_FILE_EXT}" "${DEPLOYDIR}"
     }
 
     install -d "${DEPLOYDIR}/efi-unsigned"
     install -m 0644 "${B}/${GRUB_IMAGE}" "${DEPLOYDIR}/efi-unsigned"
-    PSEUDO_DISABLED=1 cp -af "${D}${EFI_BOOT_PATH}/${GRUB_TARGET}-efi" "${DEPLOYDIR}/efi-unsigned"
+    PSEUDO_DISABLED=1 cp -af "${D}${EFI_FILES_PATH}/${GRUB_TARGET}-efi" "${DEPLOYDIR}/efi-unsigned"
 }
 
-FILES:${PN} += "${EFI_BOOT_PATH}"
+FILES:${PN} += "${EFI_FILES_PATH}"
 
 CONFFILES:${PN} += "\
-    ${EFI_BOOT_PATH}/grub.cfg \
-    ${EFI_BOOT_PATH}/grubenv \
-    ${EFI_BOOT_PATH}/boot-menu.inc \
-    ${EFI_BOOT_PATH}/efi-secure-boot.inc \
+    ${EFI_FILES_PATH}/grub.cfg \
+    ${EFI_FILES_PATH}/grubenv \
+    ${EFI_FILES_PATH}/boot-menu.inc \
+    ${EFI_FILES_PATH}/efi-secure-boot.inc \
 "
