@@ -1,3 +1,5 @@
+require conf/image-uefi.conf
+
 SUMMARY = "Tools to support reading and manipulating the UEFI signature database"
 DESCRIPTION = "\
 From the EFI Tools package in the Linux user-space, it's now possible \
@@ -50,8 +52,6 @@ EXTRA_OEMAKE = "\
 EXTRA_OEMAKE:append:x86 = " ARCH=ia32"
 EXTRA_OEMAKE:append:x86-64 = " ARCH=x86_64"
 
-EFI_BOOT_PATH = "/boot/efi/EFI/BOOT"
-
 do_compile:prepend() {
     sed -i -e "1s:#!.*:#!/usr/bin/env nativeperl:" xxdi.pl 
 }
@@ -65,7 +65,7 @@ fakeroot python do_sign:class-target() {
         return
 
     image_dir = d.getVar('D', True)
-    efi_boot_path = d.getVar('EFI_BOOT_PATH', True)
+    efi_boot_path = d.getVar('EFI_FILES_PATH', True)
     uks_boot_sign(os.path.join(image_dir + efi_boot_path, 'LockDown.efi'), d)
 }
 addtask sign after do_install before do_deploy do_package
@@ -74,6 +74,6 @@ do_sign[prefuncs] += "${@'check_boot_public_key' if d.getVar('GRUB_SIGN_VERIFY',
 fakeroot python do_sign() {
 }
 
-FILES:${PN} += "${EFI_BOOT_PATH}"
+FILES:${PN} += "${EFI_FILES_PATH}"
 
 SSTATE_ALLOW_OVERLAP_FILES += "${DEPLOY_DIR_IMAGE}/LockDown.efi"

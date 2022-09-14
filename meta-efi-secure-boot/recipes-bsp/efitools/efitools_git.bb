@@ -68,16 +68,16 @@ addtask prepare_signing_keys after do_configure before do_compile
 do_prepare_signing_keys[prefuncs] += "check_deploy_keys"
 
 do_install:append() {
-    install -d ${D}${EFI_BOOT_PATH}
-    install -m 0755 ${D}${datadir}/efitools/efi/LockDown.efi ${D}${EFI_BOOT_PATH}
+    install -d ${D}${EFI_FILES_PATH}
+    install -m 0755 ${D}${datadir}/efitools/efi/LockDown.efi ${D}${EFI_FILES_PATH}
 }
 
 do_deploy() {
     install -d ${DEPLOYDIR}
 
-    install -m 0600 ${D}${EFI_BOOT_PATH}/LockDown.efi "${DEPLOYDIR}"
-    if [ -e ${D}${EFI_BOOT_PATH}/LockDown.efi.sig ] ; then
-        install -m 0600 ${D}${EFI_BOOT_PATH}/LockDown.efi.sig "${DEPLOYDIR}"
+    install -m 0600 ${D}${EFI_FILES_PATH}/LockDown.efi "${DEPLOYDIR}"
+    if [ -e ${D}${EFI_FILES_PATH}/LockDown.efi.sig ] ; then
+        install -m 0600 ${D}${EFI_FILES_PATH}/LockDown.efi.sig "${DEPLOYDIR}"
     fi
 }
 addtask deploy after do_install before do_build
