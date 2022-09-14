@@ -1,0 +1,24 @@
+From 0da5fb8c9de1ff5c4bb4cde92f5233cf466375e4 Mon Sep 17 00:00:00 2001
+From: Peter Jones <pjones@redhat.com>
+Date: Wed, 28 Feb 2018 15:01:07 -0500
+Subject: [PATCH] ident: We don't actually need the hostname or kernel version,
+ and it makes the builds differ.
+
+Signed-off-by: Peter Jones <pjones@redhat.com>
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index e756aa568..e6281a031 100644
+--- a/Makefile
++++ b/Makefile
+@@ -177,7 +177,7 @@ shim_cert.h: shim.cer
+ 
+ version.c : $(TOPDIR)/version.c.in
+ 	sed	-e "s,@@VERSION@@,$(VERSION)," \
+-		-e "s,@@UNAME@@,$(shell uname -a)," \
++		-e "s,@@UNAME@@,$(shell uname -s -m -p -i -o)," \
+ 		-e "s,@@COMMIT@@,$(COMMITID)," \
+ 		< $< > $@
+ 
